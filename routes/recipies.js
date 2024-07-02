@@ -1,5 +1,17 @@
 const express = require('express');
-const { getAllRecipes, getRecipeById, deleteRecipeById, updateRecipeById, getIngredientesRecipeById, updateIngredientesById } = require('../db/connection');
+const { 
+    getAllRecipes, 
+    getRecipeById, 
+    deleteRecipeById, 
+    updateRecipeById, 
+    getIngredientesRecipeById, 
+    updateIngredientesById,
+    deleteIngredientsById,
+    createIngredient,
+    getIngredientById,
+    updateAllIngredients,
+    createRecipe
+ } = require('../db/connection');
 const router = express.Router();
 
 router.get("/recipies", async (req, res) => {
@@ -11,6 +23,16 @@ router.get("/recipies", async (req, res) => {
         return res.status(500).send("Ocurrio un error al obtener las recetas");
    });
 })
+
+router.post("/recipies", async (req, res) => {
+    createRecipe(req?.body, function(error) {
+        if(error) {
+           return res.status(500).send("Ocurrio un error al crear la receta");
+        } 
+
+        return res.status(201).send();
+    })
+ })
 
 router.delete("/recipies", async (req, res) => {
     if(!req?.query?.id) {
@@ -60,12 +82,19 @@ router.delete("/recipies", async (req, res) => {
                 description: resultRecipe[0]?.descripcionReceta,
             };
 
-           oldRecipe = { ...oldRecipe, ...recipe };
+            const { ingredients, ...recipe} = req.body
+            oldRecipe = { ...oldRecipe, ...recipe };
             updateRecipeById(oldRecipe, function(errorUpdate, result) {
                 if(errorUpdate) {
                     return res.status(500).send("Ocurrio un error al editarla receta");
                 } else {
-                    return res.status(200).send(result[0]);
+                    updateAllIngredients(req.body.ingredients, function(errorIngredient) {
+                        if(errorIngredient) {
+                            return res.status(500).send("La receta se actualizo pero fallo actualizar los ingredientes");
+                        } 
+
+                        return res.status(200).send();
+                    })
                 }
             })
                     
@@ -76,8 +105,8 @@ router.delete("/recipies", async (req, res) => {
    })
  })
 
- router.get("/recipies/ingredients", async (req, res) => {
-    getIngredientesRecipeById(req?.query?.id, function(errorIngredients, resultIngredients) {
+ router.get("/recipies/ingredients/:id", async (req, res) => {
+    getIngredientesRecipeById(req?.params?.id, function(errorIngredients, resultIngredients) {
         if(!errorIngredients) {
             return res.status(200).send(resultIngredients);
             
@@ -99,12 +128,37 @@ router.delete("/recipies", async (req, res) => {
  })
 
  router.delete("/recipies/ingredients", async (req, res) => {
-    deleteIngredientesById(req?.query?.id, function(errorIngredients) {
+    deleteIngredientsById(req?.query?.id, function(errorIngredients) {
         if(!errorIngredients) {
-            return res.status(200).send();
+            getIngredientesRecipeById(req?.query?.idReceta, function(errorIngredients, resultIngredients) {
+                if(!errorIngredients) {
+                    return res.status(200).send(resultIngredients);
+                    
+                } else {
+                    return res.status(500).send("Ocurrio un error al obtener los ingredientes");
+                }
+            })
             
         } else {
             return res.status(500).send("Ocurrio un error al eliminar el ingrediente");
+        }
+    })
+ })
+
+ router.post("/recipies/ingredients/new", async (req, res) => {
+    createIngredient(req?.query?.id, function(errorIngredients, result) {
+        if(!errorIngredients) {
+            getIngredientById(result?.insertId, function(errorGet, resultGet) {
+                if(errorGet) {
+                    return res.status(404).send("Ocurrio un error al obtener el ingrediente"); 
+                } 
+
+                res.status(200).send(resultGet[0])
+            }) 
+           
+            
+        } else {
+            return res.status(500).send("Ocurrio un error al crear el ingrediente");
         }
     })
  })

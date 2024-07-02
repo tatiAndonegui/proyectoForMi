@@ -8,7 +8,8 @@ const createDBInstance = () => {
         port: 3306,
         database: 'pasteleria',
         user: 'root',
-        password: ''
+        password: '',
+        multipleStatements: true
     });
 
     return new Promise((resolve, reject) => {
@@ -60,7 +61,7 @@ const getAllRecipes = (callback) => {
 }
 
 const getRecipeById = (id, callback) => {
-    const query = `SELECT idReceta, nombreReceta FROM receta WHERE idReceta=${dbInstance.escape(id)}`;
+    const query = `SELECT idReceta, nombreReceta, descripcionReceta FROM receta WHERE idReceta=${dbInstance.escape(id)}`;
 
     return dbInstance.query(query, callback);
 }
@@ -74,7 +75,7 @@ const deleteRecipeById = (id, callback) => {
 const updateRecipeById = ({ id, name, description }, callback) => {
     const query = `UPDATE receta SET 
         nombreReceta=${dbInstance.escape(name)},
-        descripcionReceta=${dbInstance.escape(description)},
+        descripcionReceta=${dbInstance.escape(description)}
       WHERE idReceta=${dbInstance.escape(id)}`;
 
     return dbInstance.query(query, callback);
@@ -86,17 +87,45 @@ const getIngredientesRecipeById = (id, callback) => {
     return dbInstance.query(query, callback);
 }
 
+const getIngredientById = (id, callback) => {
+    const query = `SELECT idIngrendientes, descripcionIngrediente FROM ingrendientes WHERE idIngrendientes=${dbInstance.escape(id)}`;
+
+    return dbInstance.query(query, callback);
+}
 const updateIngredientesById = ({id, description}, callback) => {
     const query = `UPDATE ingrendientes SET 
-        descripcionIngrediente=${dbInstance.escape(description)},
+        descripcionIngrediente=${dbInstance.escape(description)}
       WHERE idIngrendientes=${dbInstance.escape(id)}`;
    
     return dbInstance.query(query, callback);
 }
 
-const deleteIngredientesById = (id, callback) => {
-    const query = `DELETE ingrendientes WHERE idIngrendientes=${dbInstance.escape(id)}`;
+const deleteIngredientsById = (id, callback) => {
+    const query = `DELETE FROM ingrendientes WHERE idIngrendientes=${dbInstance.escape(id)}`;
    
+    return dbInstance.query(query, callback);
+}
+
+const createIngredient = (id, callback) => {
+    const query = `INSERT INTO ingrendientes (idIngrendientes, descripcionIngrediente, receta_idReceta) VALUES ( NULL, 'Nuevo ingrediente', ${dbInstance.escape(id)});`;
+   
+    return dbInstance.query(query, callback);
+}
+
+const createRecipe = ({name, description}, callback) => {
+    const query = `INSERT INTO receta (idReceta, nombreReceta, descripcionReceta, foto) VALUES ( NULL, ${dbInstance.escape(name)}, ${dbInstance.escape(description)}, NULL);`;
+   
+    return dbInstance.query(query, callback);
+}
+
+const updateAllIngredients = (ingredients, callback) => {
+    let query = '';
+    ingredients.forEach(ingredient => {
+        query += `UPDATE ingrendientes SET 
+            descripcionIngrediente=${dbInstance.escape(ingredient?.descripcionIngrediente)}
+            WHERE idIngrendientes=${dbInstance.escape(ingredient?.idIngrendientes)};`;
+    })
+
     return dbInstance.query(query, callback);
 }
 
@@ -110,5 +139,9 @@ module.exports = {
      deleteRecipeById,
      updateRecipeById,
      updateIngredientesById,
-     deleteIngredientesById,
+     deleteIngredientsById,
+     createIngredient,
+     getIngredientById,
+     updateAllIngredients,
+     createRecipe,
  };
